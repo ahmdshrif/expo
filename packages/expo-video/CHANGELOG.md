@@ -8,6 +8,8 @@
 
 ### 🐛 Bug fixes
 
+- Fix VideoView holding a strong reference to VideoPlayer even after the player has been detached.
+
 ### 💡 Others
 
 ## 56.1.2 — 2026-05-21
