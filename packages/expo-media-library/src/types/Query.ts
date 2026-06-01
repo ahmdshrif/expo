@@ -1,6 +1,7 @@
 import type { Album } from './Album';
 import type { Asset } from './Asset';
 import type { AssetField, AssetFieldValueMap } from './AssetField';
+import type { AssetInfo } from './AssetInfo';
 import type { SortDescriptor } from './SortDescriptor';
 
 /**
@@ -93,4 +94,19 @@ export declare class Query {
    * ```
    */
   exe(): Promise<Asset[]>;
+  /**
+   * Executes the query and retrieves detailed information about the matching assets.
+   * @returns A promise that resolves to an array of [AssetInfo](#assetinfo) objects that match the query criteria.
+   *
+   * @example
+   * ```ts
+   * const assetInfos = await new Query()
+   *  .eq(AssetField.MEDIA_TYPE, MediaType.IMAGE)
+   *  .lte(AssetField.HEIGHT, 1080)
+   *  .orderBy(AssetField.CREATION_TIME)
+   *  .limit(20)
+   *  .exeWithDetails();
+   * ```
+   */
+  exeWithDetails(): Promise<AssetInfo[]>;
 }

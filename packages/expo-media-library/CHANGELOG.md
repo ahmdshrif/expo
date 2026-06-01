@@ -6,6 +6,8 @@
 
 ### 🎉 New features
 
+- Add `Query.exeWithDetails()` for bulk fetch ([#46485](https://github.com/expo/expo/pull/46485) by [@Wenszel](https://github.com/Wenszel))
+
 ### 🐛 Bug fixes
 
 ### 💡 Others

@@ -2,11 +2,16 @@ import Photos
 import ExpoModulesCore
 
 class Query: SharedObject {
+  private let assetMapper: AssetMapper
   private var predicates: [NSPredicate] = []
   private var sortDescriptors: [NSSortDescriptor] = []
   private var album: Album?
   private var limit: Int?
   private var offset: Int?
+
+  init(assetMapper: AssetMapper) {
+    self.assetMapper = assetMapper
+  }
 
   func eq(_ assetField: AssetField, _ value: Either<MediaTypeNext, Int>) throws -> Query {
     let predicate = try AssetFieldPredicateBuilder.buildPredicate(
@@ -102,7 +107,22 @@ class Query: SharedObject {
     let fetchOptions = constructFetchOptions()
     let phFetchResult = try await fetch(fetchOptions)
     return sliceFetchedAssets(from: phFetchResult)
-      .map { Asset(localIdentifier: $0.localIdentifier) }
+      .map { Asset(localIdentifier: $0.localIdentifier, assetMapper: assetMapper) }
+  }
+
+  func exeWithDetails() async throws -> [AssetInfo] {
+    if try await resolveZeroLimitResult() != nil {
+      return []
+    }
+
+    let fetchOptions = constructFetchOptions()
+    let phFetchResult = try await fetch(fetchOptions)
+    var assetInfos: [AssetInfo] = []
+    for phAsset in sliceFetchedAssets(from: phFetchResult) {
+      let assetInfo = try await assetMapper.toDto(phAsset)
+      assetInfos.append(assetInfo)
+    }
+    return assetInfos
   }
 
   private func constructFetchOptions() -> PHFetchOptions {

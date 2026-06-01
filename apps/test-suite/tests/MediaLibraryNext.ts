@@ -821,6 +821,54 @@ export async function test(t) {
       t.expect(secondAsset.id).toBe(shorterAsset.id);
       t.expect(thirdAsset.id).toBe(tallerAsset.id);
     });
+
+    t.it('exeWithDetails works correctly for images', async () => {
+      // given
+      const asset = await Asset.create(pngFile.localUri);
+      assetsContainer.push(asset);
+      const albumName = createAlbumName('exeWithDetails works correctly for images');
+      const album = await Album.create(albumName, [asset]);
+      albumsContainer.push(album);
+      // when
+      const results = await new Query().album(album).exeWithDetails();
+      // then
+      const expectedInfo = await asset.getInfo();
+      t.expect(results.length).toBe(1);
+      t.expect(results[0].id).toBe(expectedInfo.id);
+      t.expect(results[0].mediaType).toBe(expectedInfo.mediaType);
+      t.expect(results[0].width).toBe(expectedInfo.width);
+      t.expect(results[0].height).toBe(expectedInfo.height);
+      t.expect(results[0].uri).toBe(expectedInfo.uri);
+      t.expect(results[0].filename).toBe(expectedInfo.filename);
+      t.expect(results[0].duration).toBe(expectedInfo.duration);
+      t.expect(results[0].creationTime).toBe(expectedInfo.creationTime);
+      t.expect(results[0].modificationTime).toBe(expectedInfo.modificationTime);
+      t.expect(results[0].isFavorite).toBe(expectedInfo.isFavorite);
+    });
+
+    t.it('exeWithDetails works correctly for videos', async () => {
+      // given
+      const asset = await Asset.create(mp4File.localUri);
+      assetsContainer.push(asset);
+      const albumName = createAlbumName('exeWithDetails works correctly for videos');
+      const album = await Album.create(albumName, [asset]);
+      albumsContainer.push(album);
+      // when
+      const results = await new Query().album(album).exeWithDetails();
+      // then
+      const expectedInfo = await asset.getInfo();
+      t.expect(results.length).toBe(1);
+      t.expect(results[0].id).toBe(expectedInfo.id);
+      t.expect(results[0].mediaType).toBe(expectedInfo.mediaType);
+      t.expect(results[0].width).toBe(expectedInfo.width);
+      t.expect(results[0].height).toBe(expectedInfo.height);
+      t.expect(results[0].uri).toBe(expectedInfo.uri);
+      t.expect(results[0].filename).toBe(expectedInfo.filename);
+      t.expect(results[0].duration).toBe(expectedInfo.duration);
+      t.expect(results[0].creationTime).toBe(expectedInfo.creationTime);
+      t.expect(results[0].modificationTime).toBe(expectedInfo.modificationTime);
+      t.expect(results[0].isFavorite).toBe(expectedInfo.isFavorite);
+    });
   });
 
   t.describe('asset.getAlbums()', () => {
