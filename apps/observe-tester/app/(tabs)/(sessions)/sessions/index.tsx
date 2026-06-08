@@ -25,7 +25,7 @@ type SessionRowData = {
   isActive: boolean;
   metricCount: number;
   crashed: boolean;
-  // Detail route: the live sessions have dedicated `main` screens;
+  // Detail route: the live sessions have dedicated `main`/`foreground` screens;
   // inactive ones are looked up by id via the `[id]` screen.
   href: Href;
 };
@@ -46,27 +46,32 @@ export default function SessionsList() {
   }, []);
 
   const refresh = useCallback(async () => {
-    const mainSession = await AppMetrics.getMainSession();
-    const active: SessionRowData[] = mainSession
-      ? [
-          {
-            id: mainSession.id,
-            type: mainSession.type,
-            startDate: mainSession.startDate,
-            endDate: null,
-            isActive: true,
-            metricCount: mainSession?.metrics?.length ?? 0,
-            // A live session is always active, so it never has a crash report.
-            crashed: false,
-            // `main` is the live sessions' dedicated detail routes.
-            href: `/sessions/${mainSession.type}`,
-          },
-        ]
-      : [];
+    // Active sessions are the live shared objects: the main session, plus the
+    // current foreground session where the platform tracks one.
+    const foreground = await AppMetrics.getForegroundSession();
+    const live = [AppMetrics.getMainSession(), foreground].filter(
+      (s): s is Session => s != null
+    );
+    const active: SessionRowData[] = await Promise.all(
+      live.map(async (s) => ({
+        id: s.id,
+        type: s.type,
+        startDate: s.startDate,
+        endDate: null,
+        isActive: true,
+        metricCount: (await s.getMetrics()).length,
+        // A live session is always active, so it never has a crash report.
+        crashed: false,
+        // `main`/`foreground` are the live sessions' dedicated detail routes.
+        href: `/sessions/${s.type}`,
+      }))
+    );
 
     // Inactive sessions come back as plain eager records.
     const records = await AppMetrics.getInactiveSessions();
+    const activeIds = new Set(active.map((s) => s.id));
     const inactive: SessionRowData[] = records
+      .filter((s) => !activeIds.has(s.id))
       .map((s) => ({
         id: s.id,
         type: s.type,
@@ -74,7 +79,7 @@ export default function SessionsList() {
         endDate: s.endDate ?? null,
         isActive: false,
         metricCount: s.metrics.length,
-        crashed: 'crashReport' in s ? !!s.crashReport : false,
+        crashed: !!s.crashReport,
         href: `/sessions/${s.id}`,
       }))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));

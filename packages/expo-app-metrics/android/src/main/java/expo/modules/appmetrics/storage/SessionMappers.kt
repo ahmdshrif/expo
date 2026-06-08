@@ -11,31 +11,35 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 /**
- * JS-facing shape of a session. Field names mirror the TypeScript `Session`
- * type (`startDate` / `endDate`), distinct from the Room column names
- * (`startTimestamp` / `endTimestamp`).
+ * JS-facing shape of a historic session — the plain eager `DebugSession` record
+ * returned by `getInactiveSessions`. Field names mirror the TypeScript
+ * `DebugSession` type (`startDate` / `endDate`), distinct from the Room column
+ * names (`startTimestamp` / `endTimestamp`).
  *
  * `type` is hard-coded to `"main"` since the per-launch session opened in
- * `AppMetricsModule.OnCreate` is the only one we track. A future change
- * should add a real `type` column and lifecycle hooks for
- * foreground/screen/custom sessions.
+ * `AppMetricsModule.OnCreate` is the only one we track. A future change should
+ * add a real `type` column and lifecycle hooks for foreground/screen/custom
+ * sessions. Crash reports are an iOS-only MetricKit feature, so the record omits
+ * `crashReport` (optional in the TS type).
  */
 @OptimizedRecord
-data class JsSession(
+data class JsDebugSession(
   @Field val id: String,
   @Field val type: String,
   @Field val startDate: String,
   @Field val endDate: String?,
+  @Field val isActive: Boolean,
   @Field val metrics: List<JsMetric>,
   @Field val logs: List<JsLogRecord>
 ) : Record {
   companion object {
-    fun fromSessionWithMetrics(value: SessionWithMetrics): JsSession =
-      JsSession(
+    fun fromSessionWithMetrics(value: SessionWithMetrics): JsDebugSession =
+      JsDebugSession(
         id = value.session.id,
         type = "main",
         startDate = value.session.startTimestamp,
         endDate = value.session.endTimestamp,
+        isActive = value.session.isActive,
         metrics = value.metrics.map { JsMetric.fromMetric(it) },
         logs = value.logs.map { JsLogRecord.fromLogRecord(it) }
       )
@@ -81,6 +85,36 @@ data class JsMetric(
         params = decodeJsonObject(metric.params)
       )
   }
+}
+
+/**
+ * Payload for `Session.addMetric` — mirrors the TypeScript `MetricInput` type
+ * (`Metric` minus `sessionId`). The owning session is implied by the shared
+ * object the metric is added to, so the id is injected via `toMetric(sessionId)`
+ * rather than carried across the bridge; `updateId` is a native-side concern not
+ * exposed to JS.
+ */
+@OptimizedRecord
+data class SessionMetricInput(
+  @Field val category: String,
+  @Field val name: String,
+  @Field val value: Double,
+  @Field val timestamp: String = TimeUtils.getCurrentTimestampInISOFormat(),
+  @Field val routeName: String? = null,
+  @Field val params: Map<String, Any?>? = null
+) : Record {
+  fun toMetric(sessionId: String): Metric =
+    Metric(
+      metricId = UUID.randomUUID().toString(),
+      sessionId = sessionId,
+      timestamp = timestamp,
+      category = category,
+      name = name,
+      value = value,
+      routeName = routeName,
+      updateId = null,
+      params = params?.let { JsonAny.encodeMapToJsonString(it) }
+    )
 }
 
 /**
