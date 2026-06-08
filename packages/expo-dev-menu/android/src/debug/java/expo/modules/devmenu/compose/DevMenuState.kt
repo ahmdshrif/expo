@@ -13,9 +13,15 @@ data class DevMenuState(
   val customItems: List<CustomItem> = emptyList(),
   val availableAppKeys: List<String> = emptyList(),
   val currentAppKey: String? = null,
+  val openSubScreen: SubScreen? = null,
   val hasGoHomeAction: Boolean = false,
   val isInPictureInPictureMode: Boolean = false
 ) {
+  /** Sub-screens the bottom sheet can drill into in place of the main menu. */
+  enum class SubScreen {
+    Components
+  }
+
   data class CustomItem(
     val name: String,
     val shouldCollapse: Boolean,

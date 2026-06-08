@@ -84,7 +84,7 @@ class DevMenuViewModel(
   }
 
   private fun closeMenu() {
-    _state.value = _state.value.copy(isOpen = false)
+    _state.value = _state.value.copy(isOpen = false, openSubScreen = null)
   }
 
   private fun openMenu() {
@@ -92,8 +92,8 @@ class DevMenuViewModel(
       isOpen = true,
       // Refresh dev tools settings when opening the menu
       devToolsSettings = devSettings,
-      // The mounted component can change between opens, so re-read it every time the menu is shown.
-      currentAppKey = ComponentSwitcher.currentModuleName(reactHost?.currentReactContext)
+      currentAppKey = _state.value.currentAppKey
+        ?: ComponentSwitcher.currentModuleName(reactHost?.currentReactContext)
     )
   }
 
@@ -130,10 +130,13 @@ class DevMenuViewModel(
       is DevMenuAction.ToggleFab -> toggleFab()
       DevMenuAction.FinishOnboarding -> finishOnboarding()
       is DevMenuAction.TriggerCustomCallback -> action.item.fn.invoke()
-      is DevMenuAction.SwitchComponent -> ComponentSwitcher.switchToComponent(
-        reactHost?.currentReactContext,
-        action.name
-      )
+      is DevMenuAction.SwitchComponent -> {
+        if (ComponentSwitcher.switchToComponent(reactHost?.currentReactContext, action.name)) {
+          _state.value = _state.value.copy(currentAppKey = action.name)
+        }
+      }
+      is DevMenuAction.OpenSubScreen -> _state.value = _state.value.copy(openSubScreen = action.screen)
+      is DevMenuAction.CloseSubScreen -> _state.value = _state.value.copy(openSubScreen = null)
     }
   }
 
