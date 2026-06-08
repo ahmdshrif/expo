@@ -104,6 +104,22 @@ public final class AppMetricsModule: Module, UpdatesStateChangeListener {
       }.value
     }
 
+    // Returns the current foreground session, or `nil` when the app is not in the foreground.
+    // Reads the actor-isolated `foregroundSession`, so it's async. The handle is cached and reused
+    // while the same foreground session is current, and rebuilt when the session rotates, so the
+    // reference is static per foreground session.
+    AsyncFunction("getForegroundSession") { () -> StoredSession? in
+      return try await AppMetricsActor.isolated {
+        let foregroundSessionId = AppMetrics.foregroundSession.id
+        guard let row = try AppMetrics.database?
+          .getAllSessionsWithChildren()
+          .first(where: { $0.session.id == foregroundSessionId }) else {
+          return nil
+        }
+        return StoredSession(from: row)
+      }.value
+    }
+
     Function("simulateCrashReport") {
       simulateCrashReport()
     }
