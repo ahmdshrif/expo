@@ -1,11 +1,11 @@
 import { NativeModule } from 'expo';
 import type { Session } from './Session';
-import type { DebugSession, ExpoAppMetricsModuleType, LogAttributeValue, LogEventOptions, Metric, MetricAttributes } from './types';
+import type { DebugSession, ExpoAppMetricsModuleType, LogAttributeValue, LogEventOptions, MetricAttributes } from './types';
 export * from './types';
 declare class ExpoAppMetricsModule extends NativeModule implements ExpoAppMetricsModuleType {
     Session: typeof Session;
     private mainSession;
-    addCustomMetricToSession(metric: Metric): Promise<void>;
+    private foregroundSession;
     markFirstRender(): Promise<void>;
     markInteractive(attributes?: MetricAttributes): Promise<void>;
     logEvent(name: string, options?: LogEventOptions): void;

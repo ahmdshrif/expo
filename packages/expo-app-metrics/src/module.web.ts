@@ -42,10 +42,7 @@ class ExpoAppMetricsModule extends NativeModule implements ExpoAppMetricsModuleT
   Session = WebSession as unknown as typeof Session;
 
   private mainSession: WebSession | null = null;
-
-  addCustomMetricToSession(metric: Metric): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
+  private foregroundSession: WebSession | null = null;
 
   async markFirstRender() {}
   async markInteractive(attributes?: MetricAttributes) {}
@@ -64,7 +61,10 @@ class ExpoAppMetricsModule extends NativeModule implements ExpoAppMetricsModuleT
     return this.mainSession as unknown as Session;
   }
   async getForegroundSession(): Promise<Session | null> {
-    return null;
+    if (!this.foregroundSession) {
+      this.foregroundSession = new WebSession('foreground');
+    }
+    return this.foregroundSession as unknown as Session;
   }
 }
 
