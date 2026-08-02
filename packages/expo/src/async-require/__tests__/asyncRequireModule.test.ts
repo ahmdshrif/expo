@@ -90,18 +90,19 @@ describe('asyncRequireModule', () => {
 
       function asyncRequire(moduleID, paths, moduleName) {
         var ret = asyncRequireImpl(moduleID, paths, moduleName);
-        if (!(ret instanceof Promise)) {
-          return {
-            _result: ret,
-            then: function(resolve, reject) {
-              return Promise.resolve(ret).then(resolve, reject);
-            },
-          };
-        }
+        var toPromise = function() {
+          return ret instanceof Promise ? ret : Promise.resolve(ret);
+        };
         return {
           _result: ret,
           then: function(resolve, reject) {
-            return ret.then(resolve, reject);
+            return toPromise().then(resolve, reject);
+          },
+          catch: function(reject) {
+            return toPromise().catch(reject);
+          },
+          finally: function(onFinally) {
+            return toPromise().finally(onFinally);
           },
         };
       }
@@ -247,6 +248,39 @@ describe('asyncRequireModule', () => {
       expect(typeof ret.then).toBe('function');
       expect(ret._result).toBeInstanceOf(Promise);
       await expect(ret._result).resolves.toEqual({ default: 'module-42' });
+    });
+
+    it('exposes the full promise surface for the synchronous case', async () => {
+      const ret = asyncRequire(42, null, 'my-module');
+
+      expect(typeof ret.then).toBe('function');
+      expect(typeof ret.catch).toBe('function');
+      expect(typeof ret.finally).toBe('function');
+
+      const onFinally = jest.fn();
+      await expect(ret.catch(() => 'unreachable')).resolves.toEqual({ default: 'module-42' });
+      await expect(ret.finally(onFinally)).resolves.toEqual({ default: 'module-42' });
+      expect(onFinally).toHaveBeenCalledTimes(1);
+    });
+
+    it('routes rejections through catch() and still runs finally()', async () => {
+      process.env.EXPO_OS = 'web';
+      mockImportAll.mockImplementationOnce(() => {
+        throw new Error('Module not loaded');
+      });
+      (globalThis as any).__loadBundleAsync = jest.fn(() =>
+        Promise.reject(new Error('Bundle load failed'))
+      );
+
+      const ret = asyncRequire(42, { '42': '/bundles/my-module.bundle' }, 'my-module');
+
+      const onReject = jest.fn();
+      await expect(ret.catch(onReject)).resolves.toBeUndefined();
+      expect(onReject).toHaveBeenCalledWith(new Error('Bundle load failed'));
+
+      const onFinally = jest.fn();
+      await expect(ret.finally(onFinally)).rejects.toThrow('Bundle load failed');
+      expect(onFinally).toHaveBeenCalledTimes(1);
     });
   });
 

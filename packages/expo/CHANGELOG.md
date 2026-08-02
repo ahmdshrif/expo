@@ -18,6 +18,7 @@
 - [iOS] Mark `ExpoAppSceneDelegate` as unavailable in `iOSApplicationExtension` for widgets. ([#47894](https://github.com/expo/expo/pull/47894) by [@jakex7](https://github.com/jakex7))
 - [iOS] Add ExpoBundleConfiguration to derive RCTBundleConfiguration from the normalized bundle URL instead of default shared settings singleton ([#48010](https://github.com/expo/expo/pull/48010) by [@kitten](https://github.com/kitten))
 - [iOS] Resolve the dev server port from the `RCTMetroPort` Info.plist key at runtime so bare projects without expo-dev-client connect to their own Metro instance instead of defaulting to 8081. ([#48098](https://github.com/expo/expo/pull/48098) by [@alanjhughes](https://github.com/alanjhughes))
+- Give the value returned by `import()` on native the full promise surface, so `.catch()`/`.finally()` chained directly onto a dynamic import no longer throw `TypeError: undefined is not a function`. ([#48420](https://github.com/expo/expo/pull/48420) by [@ahmdshrif](https://github.com/ahmdshrif))
 
 ### 💡 Others
 

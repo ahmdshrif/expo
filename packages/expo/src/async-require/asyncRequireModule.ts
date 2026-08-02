@@ -17,6 +17,9 @@ type MetroRequire = {
 
 type DependencyMapPaths = { [moduleID: number | string]: unknown } | null;
 
+type AsyncRequireResult<T> = PromiseLike<T> &
+  Pick<Promise<T>, 'catch' | 'finally'> & { _result?: T | Promise<T> };
+
 declare const crossOriginIsolated: boolean | undefined;
 declare let __METRO_GLOBAL_PREFIX__: string;
 
@@ -98,26 +101,27 @@ function asyncRequire<T>(
   moduleID: number,
   paths: DependencyMapPaths,
   moduleName?: string
-): PromiseLike<T> & { _result?: T | Promise<T> } {
+): AsyncRequireResult<T> {
   const ret = asyncRequireImpl<T>(moduleID, paths, moduleName);
-  if (!(ret instanceof Promise)) {
-    // We return a thenable with an added `unstable_importMaybeSync`-like
-    // `_result` property to bypass this being force-converted to a promise
-    // for rehydration
-    return {
-      _result: ret,
-      then(resolve, reject) {
-        return Promise.resolve(ret).then(resolve, reject);
-      },
-    };
-  } else {
-    return {
-      _result: ret,
-      then(resolve, reject) {
-        return ret.then(resolve, reject);
-      },
-    };
-  }
+  // `Promise.resolve` is a no-op when `ret` is already a promise, and is only
+  // reached at all for the synchronous case if the caller chains onto the result
+  const toPromise = (): Promise<T> => (ret instanceof Promise ? ret : Promise.resolve(ret));
+  // We return a thenable with an added `unstable_importMaybeSync`-like
+  // `_result` property to bypass this being force-converted to a promise
+  // for rehydration. It still needs the full promise surface, since `import()`
+  // evaluates to a promise and libraries chain `.catch()`/`.finally()` onto it
+  return {
+    _result: ret,
+    then(resolve, reject) {
+      return toPromise().then(resolve, reject);
+    },
+    catch(reject) {
+      return toPromise().catch(reject);
+    },
+    finally(onFinally) {
+      return toPromise().finally(onFinally);
+    },
+  };
 }
 
 // Synchronous version of asyncRequire, which can still return a promise
