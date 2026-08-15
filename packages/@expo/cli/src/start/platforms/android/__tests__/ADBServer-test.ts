@@ -15,11 +15,24 @@ jest.mock('../../../../utils/exit', () => ({
 
 const env = process.env;
 
+/** Mimics an ADB client that connects to a wedged ADB server and never exits. */
+function mockUnresponsiveAdb() {
+  const child = { kill: jest.fn() };
+  const promise = new Promise(() => {}) as any;
+  promise.child = child;
+  jest.mocked(spawnAsync).mockReturnValueOnce(promise);
+  return child;
+}
+
 beforeEach(() => {
   delete process.env.ANDROID_HOME;
+  delete process.env.EXPO_ADB_TIMEOUT;
 });
 
-afterEach(() => vol.reset());
+afterEach(() => {
+  vol.reset();
+  jest.useRealTimers();
+});
 
 afterAll(() => {
   process.env = env;
@@ -99,6 +112,60 @@ describe('startAsync', () => {
     expect(installExitHooks).toHaveBeenCalledTimes(0);
     expect(spawnAsync).toHaveBeenCalledTimes(0);
   });
+  it(`asserts when the ADB server is unresponsive`, async () => {
+    jest.useFakeTimers();
+    const child = mockUnresponsiveAdb();
+    const server = new ADBServer();
+
+    const assertion = expect(server.startAsync()).rejects.toThrow(
+      /^ADB did not respond within 15000ms while running "adb start-server"/
+    );
+    jest.advanceTimersByTime(15000);
+
+    await assertion;
+    expect(server.isRunning).toBe(false);
+    expect(child.kill).toHaveBeenCalledTimes(1);
+  });
+});
+describe('spawnWithTimeoutAsync', () => {
+  it(`waits indefinitely without a timeout`, async () => {
+    jest.useFakeTimers();
+    mockUnresponsiveAdb();
+    const server = new ADBServer();
+
+    const onSettled = jest.fn();
+    server.spawnWithTimeoutAsync('adb', ['install', 'app.apk']).then(onSettled, onSettled);
+    jest.advanceTimersByTime(60000);
+    await Promise.resolve();
+
+    expect(onSettled).not.toHaveBeenCalled();
+  });
+  it(`waits indefinitely when the timeout is disabled with EXPO_ADB_TIMEOUT`, async () => {
+    jest.useFakeTimers();
+    process.env.EXPO_ADB_TIMEOUT = '0';
+    mockUnresponsiveAdb();
+    const server = new ADBServer();
+
+    const onSettled = jest.fn();
+    server.startAsync().then(onSettled, onSettled);
+    jest.advanceTimersByTime(60000);
+    await Promise.resolve();
+
+    expect(onSettled).not.toHaveBeenCalled();
+  });
+  it(`asserts with the timeout from EXPO_ADB_TIMEOUT`, async () => {
+    jest.useFakeTimers();
+    process.env.EXPO_ADB_TIMEOUT = '5000';
+    mockUnresponsiveAdb();
+    const server = new ADBServer();
+
+    const assertion = expect(server.startAsync()).rejects.toThrow(
+      /^ADB did not respond within 5000ms/
+    );
+    jest.advanceTimersByTime(5000);
+
+    await assertion;
+  });
 });
 describe('runAsync', () => {
   it(`runs an ADB command`, async () => {
@@ -116,6 +183,21 @@ describe('runAsync', () => {
     expect(server.resolveAdbPromise).toHaveBeenCalledTimes(1);
     expect(spawnAsync).toHaveBeenCalledTimes(1);
     expect(spawnAsync).toHaveBeenCalledWith('adb', ['foo', 'bar']);
+  });
+  it(`asserts when a bounded command does not respond`, async () => {
+    jest.useFakeTimers();
+    const child = mockUnresponsiveAdb();
+    const server = new ADBServer();
+    server.startAsync = jest.fn();
+    server.getAdbExecutablePath = jest.fn(() => 'adb');
+
+    const assertion = expect(
+      server.runAsync(['devices', '-l'], { timeout: 15000 })
+    ).rejects.toThrow(/^ADB did not respond within 15000ms while running "adb devices -l"/);
+    await jest.advanceTimersByTimeAsync(15000);
+
+    await assertion;
+    expect(child.kill).toHaveBeenCalledTimes(1);
   });
 });
 describe('getFileOutputAsync', () => {

@@ -202,7 +202,11 @@ function shellQuote(value: string): string {
 
 // TODO: This is very expensive for some operations.
 export async function getAttachedDevicesAsync(): Promise<Device[]> {
-  const output = await getServer().runAsync(['devices', '-l']);
+  // Device discovery is the first thing `expo run:android` does, bound it so a wedged ADB server
+  // surfaces an actionable error instead of hanging the command before it prints anything.
+  const output = await getServer().runAsync(['devices', '-l'], {
+    timeout: env.EXPO_ADB_TIMEOUT,
+  });
 
   const splitItems = output
     .trim()

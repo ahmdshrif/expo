@@ -35,6 +35,7 @@
 - Switch `ManifestMiddleware` to `expo-server`'s response helpers to avoid cancellations being surfaced as exceptions ([#48700](https://github.com/expo/expo/pull/48700) by [@kitten](https://github.com/kitten))
 - Support npm@12's dictionary-based `npm pack --json` format ([#48761](https://github.com/expo/expo/pull/48761) by [@kitten](https://github.com/kitten))
 - Fix wirelessly connected iOS 16 and older devices being omitted from `expo run:ios --device` selection. ([#48127](https://github.com/expo/expo/pull/48127) by [@davellanedam](https://github.com/davellanedam))
+- Fail with an actionable error instead of hanging forever when the ADB server is unresponsive, by adding a timeout to `adb start-server`, `adb kill-server` and `adb devices -l`, configurable with `EXPO_ADB_TIMEOUT`. (by [@ahmdshrif](https://github.com/ahmdshrif))
 
 ### 💡 Others
 

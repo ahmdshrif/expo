@@ -207,6 +207,11 @@ class Env {
     return string('EXPO_ADB_USER', '0');
   }
 
+  /** Duration in milliseconds to wait for ADB commands that are expected to return promptly, such as starting the ADB server and listing devices, before assuming the ADB server is unresponsive. Set to `0` to wait indefinitely. Defaults to `15000`. */
+  get EXPO_ADB_TIMEOUT(): number {
+    return int('EXPO_ADB_TIMEOUT', 15000);
+  }
+
   /** Used internally to enable E2E utilities. This behavior is not stable to external users. */
   get __EXPO_E2E_TEST(): boolean {
     return boolish('__EXPO_E2E_TEST', false);

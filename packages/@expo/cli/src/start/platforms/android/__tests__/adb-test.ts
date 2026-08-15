@@ -196,6 +196,14 @@ describe(isDeviceBootedAsync, () => {
 });
 
 describe(getAttachedDevicesAsync, () => {
+  it(`bounds the discovery command with a timeout`, async () => {
+    jest.mocked(getServer().runAsync).mockResolvedValueOnce('List of devices attached\n');
+
+    await getAttachedDevicesAsync();
+
+    expect(getServer().runAsync).toHaveBeenCalledWith(['devices', '-l'], { timeout: 15000 });
+  });
+
   it(`gets devices`, async () => {
     jest
       .mocked(getServer().runAsync)
