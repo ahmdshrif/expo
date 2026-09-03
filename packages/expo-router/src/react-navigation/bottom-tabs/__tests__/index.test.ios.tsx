@@ -29,6 +29,21 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// `react-native-screens` receives the detach state as `activityState`:
+// 0 = detached, 1 = attached but below the top, 2 = on top.
+const getActivityState = (testID: string) => {
+  let node = screen.getByTestId(testID, { includeHiddenElements: true }).parent;
+
+  while (node) {
+    if ('activityState' in node.props) {
+      return node.props.activityState;
+    }
+    node = node.parent;
+  }
+
+  throw new Error(`No ancestor of "${testID}" has an activityState prop`);
+};
+
 test('renders a bottom tab navigator and navigates between screens on tab press', async () => {
   renderRouter({
     _layout: () => (
@@ -648,4 +663,58 @@ test('resets a nested stack when its tab loses focus with popToTopOnBlur', async
   // Without `popToTopOnBlur`, the details screen would still be active.
   expect(screen.getByTestId('one-index')).toBeVisible();
   expect(screen.queryByTestId('one-details')).toBeNull();
+});
+
+test('keeps the outgoing tab attached while an animated transition runs', async () => {
+  renderRouter(
+    {
+      _layout: () => (
+        <Tabs screenOptions={{ animation: 'fade' }}>
+          <Tabs.Screen name="one" />
+          <Tabs.Screen name="two" />
+        </Tabs>
+      ),
+      one: () => <View testID="one" />,
+      two: () => <View testID="two" />,
+    },
+    { initialUrl: '/one' }
+  );
+
+  expect(getActivityState('one')).toBe(2);
+
+  await userEvent.press(screen.getByRole('button', { name: 'two, tab, 2 of 2' }));
+
+  // The leaving screen has to stay attached until the arriving one has taken over,
+  // otherwise it is detached mid-transition and the tab renders blank.
+  expect(getActivityState('one')).toBe(1);
+  expect(getActivityState('two')).toBe(2);
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // Once the transition has settled the leaving screen is detached again.
+  expect(getActivityState('one')).toBe(0);
+  expect(getActivityState('two')).toBe(2);
+});
+
+test('detaches the outgoing tab immediately when the transition is not animated', async () => {
+  renderRouter(
+    {
+      _layout: () => (
+        <Tabs>
+          <Tabs.Screen name="one" />
+          <Tabs.Screen name="two" />
+        </Tabs>
+      ),
+      one: () => <View testID="one" />,
+      two: () => <View testID="two" />,
+    },
+    { initialUrl: '/one' }
+  );
+
+  await userEvent.press(screen.getByRole('button', { name: 'two, tab, 2 of 2' }));
+
+  expect(getActivityState('one')).toBe(0);
+  expect(getActivityState('two')).toBe(2);
 });

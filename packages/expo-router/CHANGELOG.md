@@ -70,6 +70,7 @@
 
 ### 🐛 Bug fixes
 
+- Stop deriving the bottom tab detach state from an `Animated.Value`. The forked `BottomTabView` still used the pre-fix upstream pattern, so with `animation` enabled and `detachInactiveScreens` on, the leaving screen could be detached before the arriving one took over and the tab rendered blank. Ports [react-navigation/react-navigation@9bfc8d0](https://github.com/react-navigation/react-navigation/commit/9bfc8d0f65eddbb434f94709b139f0fc2da62463). ([#PRNUMBER](https://github.com/expo/expo/pull/PRNUMBER) by [@ahmdshrif](https://github.com/ahmdshrif))
 - Fix `useLoaderData()` throwing "Update hook called on initial render" when React replays a suspended route after its loader settles during a transition. ([#49351](https://github.com/expo/expo/pull/49351) by [@Ubax](https://github.com/Ubax))
 - Make layouts with explicitly declared screens honor `unstable_settings.initialRouteName` instead of declaration order, which can change deep-link back stacks. ([#48708](https://github.com/expo/expo/pull/48708) by [@Ubax](https://github.com/Ubax))
 - Prevent unfocused nested native tab navigators from redirecting global router state. ([#48257](https://github.com/expo/expo/pull/48257) by [@Ubax](https://github.com/Ubax))
