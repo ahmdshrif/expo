@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
 import { use } from 'react';
-import type { ScrollView } from 'react-native';
 
 import { type EventArg, NavigationContext, useRoute } from '../core';
 import { NavigatorStateContext } from '../core/useNavigationState';
@@ -15,7 +14,7 @@ type ScrollableView =
   | { scrollResponderScrollTo(options: ScrollOptions): void };
 
 type ScrollableWrapper =
-  | { getScrollResponder(): React.ReactNode | ScrollView }
+  | { getScrollResponder(): React.ReactNode | ScrollableView }
   | { getNode(): ScrollableView }
   | ScrollableView
   | null;
