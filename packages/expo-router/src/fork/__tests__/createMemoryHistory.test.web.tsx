@@ -16,6 +16,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
+
   // Restore original globals to avoid corrupting jsdom
   for (const key of Object.keys(stubWindow) as (keyof typeof stubWindow)[]) {
     const original = originalDescriptors[key];
@@ -179,4 +181,54 @@ test('will not attempt to navigate beyond whatever browser history it is possibl
   expect(history.get(0)!.path).toBe('/route-three');
   const newItem = history.get(1)!;
   expect(stubWindow.history.state).toEqual({ id: newItem.id });
+});
+
+test('does not report a delayed popstate from history.go() as a browser navigation', async () => {
+  jest.useFakeTimers();
+
+  const createState = (path: string, name: string): NavigationState => ({
+    key: 'stack-123',
+    index: 0,
+    routeNames: ['One', 'Two'],
+    routes: [
+      {
+        name,
+        path,
+        key: `${name}-23`,
+        params: undefined,
+      },
+    ],
+    type: 'stack',
+    stale: false,
+    routeKeySeq: 0,
+  });
+
+  const history = createMemoryHistory();
+
+  history.replace({ path: '/route-one', state: createState('/route-one', 'One') });
+  history.push({ path: '/route-two', state: createState('/route-two', 'Two') });
+
+  const listener = jest.fn();
+  const unsubscribe = history.listen(listener);
+
+  // Simulate a browser where the traversal takes longer than the fallback timeout.
+  // On Firefox it has been measured at up to ~900ms while the main thread is busy.
+  const originalGo = stubWindow.history.go.bind(stubWindow.history);
+
+  jest.spyOn(stubWindow.history, 'go').mockImplementation((n: number) => {
+    setTimeout(() => originalGo(n), 600);
+  });
+
+  const navigation = history.go(-1);
+
+  await jest.advanceTimersByTimeAsync(700);
+  await navigation;
+
+  // The late `popstate` belongs to our own `history.go(-1)`, so it must not be reported
+  // to `listen()` as a user-initiated back/forward navigation. If the fallback timeout
+  // fires first, the pending entry is dropped and the event is misclassified, which makes
+  // consumers reset the navigation state to a stale route.
+  expect(listener).not.toHaveBeenCalled();
+
+  unsubscribe();
 });
