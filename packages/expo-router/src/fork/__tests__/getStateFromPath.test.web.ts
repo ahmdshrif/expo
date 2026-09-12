@@ -41,6 +41,12 @@ describe(stripBaseUrl, () => {
       ['///one/', '/one', '/'],
       ['one/', '/one', 'one/'],
       ['/a/b', '/one', '/a/b'],
+      // The baseUrl only matches whole path segments
+      ['/menu', '/m', '/menu'],
+      ['/onelong/two', '/one', '/onelong/two'],
+      ['/m', '/m', ''],
+      ['/m/', '/m', '/'],
+      ['/m/menu', '/m', '/menu'],
     ] as const
   ).forEach(([path, baseUrl, result]) => {
     it(`strips baseUrl "${path}"`, () => {

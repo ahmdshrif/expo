@@ -9,6 +9,7 @@
 ### 🐛 Bug fixes
 
 - Mock `react-native-worklets` in `expo-router/testing-library` so `react-native-gesture-handler` and `react-native-reanimated` load in Jest. ([#50013](https://github.com/expo/expo/pull/50013) by [@brentvatne](https://github.com/brentvatne))
+- Only strip `baseUrl` from a path when it matches whole path segments, so a `baseUrl` of `/m` no longer rewrites `/menu` to `enu`. ([#PRNUMBER](https://github.com/expo/expo/pull/PRNUMBER) by [@ahmdshrif](https://github.com/ahmdshrif))
 
 ### 💡 Others
 

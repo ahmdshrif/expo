@@ -218,7 +218,9 @@ export function stripBaseUrl(
 ) {
   if (process.env.NODE_ENV !== 'development') {
     if (baseUrl) {
-      return path.replace(/^\/+/g, '/').replace(new RegExp(`^\\/?${escape(baseUrl)}`, 'g'), '');
+      // The base URL is only stripped when it matches whole path segments, otherwise a base URL
+      // of `/m` would rewrite `/menu` to `enu`.
+      return path.replace(/^\/+/g, '/').replace(new RegExp(`^\\/?${escape(baseUrl)}(?=\\/|$)`), '');
     }
   }
   return path;
