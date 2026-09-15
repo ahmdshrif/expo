@@ -10,6 +10,8 @@
 
 ### 🐛 Bug fixes
 
+- Preserve the `new Worker(new URL(...))` AST when only collecting dependencies, so optimized graphs keep emitting worker chunks. ([#PRNUMBER](https://github.com/expo/expo/pull/PRNUMBER) by [@ahmdshrif](https://github.com/ahmdshrif))
+
 ### 💡 Others
 
 ## 58.0.1 — 2026-09-14

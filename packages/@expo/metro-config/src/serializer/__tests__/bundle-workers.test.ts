@@ -177,6 +177,31 @@ it('emits workers as standalone bundles when ordinary chunk splitting is disable
   expect(workerChunk).not.toBe(entryChunk);
 });
 
+it('emits a worker chunk for `new Worker(new URL(...))` when the graph is optimized', async () => {
+  const [, artifacts] = await serializeShakingAsync(
+    {
+      'index.js': `
+        const worker = new SharedWorker(new URL('./worker.js', import.meta.url), { type: 'module' });
+        console.log(worker);
+      `,
+      'worker.js': `
+        console.log('worker module');
+      `,
+    },
+    {
+      splitChunks: true,
+      mockRuntime: true,
+    }
+  );
+  const serialAssets = artifacts as SerialAsset[];
+  const entryChunk = getChunkContaining(serialAssets, '/app/index.js');
+  const workerChunk = getChunkContaining(serialAssets, '/app/worker.js');
+
+  expect(workerChunk).not.toBe(entryChunk);
+  expect(workerChunk.metadata.modulePaths).toEqual(['/app/worker.js']);
+  expect(entryChunk.source).toMatch('unstable_createWorker');
+});
+
 it(`supports worker bundle with nested async chunk`, async () => {
   // TODO: Add actual support for eliminating code from async imports.
   const [[, , graph], artifacts] = await serializeShakingAsync(

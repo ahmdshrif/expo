@@ -798,6 +798,22 @@ describe(`Worker`, () => {
     );
   });
 
+  it('can preserve the worker constructor AST in collection mode', () => {
+    const ast = astFromCode(`
+    const a = new SharedWorker(new URL("../path/to/module", import.meta.url));
+  `);
+    const { dependencies } = collectDependencies(ast, { ...opts, collectOnly: true });
+    expect(dependencies).toEqual([
+      { name: '../path/to/module', data: objectContaining({ asyncType: 'worker' }) },
+      { name: 'asyncRequire', data: objectContaining({ asyncType: null }) },
+    ]);
+    expect(codeFromAst(ast)).toEqual(
+      comparableCode(`
+      const a = new SharedWorker(new URL("../path/to/module", import.meta.url));
+    `)
+    );
+  });
+
   it('does not register dependency with worker constructor if a variable is used', () => {
     const ast = astFromCode(`
     const id = "./path/to/module";

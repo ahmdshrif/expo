@@ -200,14 +200,18 @@ function collectDependencies<TAst extends t.File>(
 
             processResolveWorkerCallWithName(moduleName, urlArgPath!, state);
 
-            // Replace `new Worker` invocation with `asyncRequire.unstable_createWorker` helper call,
-            // creating an Object URL with a shim script that remaps `importScripts` and `fetch`, while calling the entrypoint with `importScripts`.
-            // This works around COEP/CORP issues, since worker entrypoint scripts aren't necessarily expected to match these headers
-            path.get('callee').replaceWith(
-              makeCreateWorkerTemplate({
-                ASYNC_REQUIRE_MODULE_PATH: nullthrows(state.asyncRequireModulePathStringLiteral),
-              })
-            );
+            // If the pass is only collecting dependencies then we should avoid mutating the AST,
+            // this enables calling collectDependencies multiple times on the same AST.
+            if (state.collectOnly !== true) {
+              // Replace `new Worker` invocation with `asyncRequire.unstable_createWorker` helper call,
+              // creating an Object URL with a shim script that remaps `importScripts` and `fetch`, while calling the entrypoint with `importScripts`.
+              // This works around COEP/CORP issues, since worker entrypoint scripts aren't necessarily expected to match these headers
+              path.get('callee').replaceWith(
+                makeCreateWorkerTemplate({
+                  ASYNC_REQUIRE_MODULE_PATH: nullthrows(state.asyncRequireModulePathStringLiteral),
+                })
+              );
+            }
           }
         }
       },
