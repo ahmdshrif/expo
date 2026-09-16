@@ -8,6 +8,8 @@
 
 ### 🐛 Bug fixes
 
+- Do not require a worker chunk when lazy bundling is enabled. ([#50153](https://github.com/expo/expo/issues/50153) by [@ahmdshrif](https://github.com/ahmdshrif))
+
 ### 💡 Others
 
 ## 58.0.2 — 2026-09-15

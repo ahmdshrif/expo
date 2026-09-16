@@ -106,6 +106,7 @@ export async function microBundle({
     optimize?: boolean;
     inlineRequires?: boolean;
     reactCompiler?: boolean;
+    lazy?: boolean;
   };
   preModulesFs?: Record<string, string>;
 }): Promise<
@@ -137,6 +138,7 @@ export async function microBundle({
 
   const absEntry = path.join(projectRoot, entry);
   const dev = options.dev ?? true;
+  const lazy = options.lazy ?? false;
   const transformOptions: PickPartial<JsTransformOptions, 'inlinePlatform' | 'inlineRequires'> = {
     minify: options.minify ?? false,
     dev,
@@ -196,6 +198,13 @@ export async function microBundle({
 
         try {
           const resolved = resolve(id, dep.data.name);
+          if (lazy && dep.data.data.asyncType != null) {
+            // Lazy bundling resolves async dependencies but never traverses into them, so the
+            // target module is absent from the graph and is loaded from the dev server instead.
+            // @ts-expect-error
+            dep.absolutePath = path.join(projectRoot, resolved);
+            continue;
+          }
           await recurseWith([resolved], module, (fp) => {
             // @ts-expect-error
             dep.absolutePath = fp;

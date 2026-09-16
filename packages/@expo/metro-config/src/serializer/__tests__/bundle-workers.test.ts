@@ -1,7 +1,10 @@
 import type { ReadOnlyGraph } from '@expo/metro/metro/DeltaBundler/types';
 import vm from 'node:vm';
 
-import { serializeShakingAsync } from '../fork/__tests__/serializer-test-utils';
+import {
+  serializeShakingAsync,
+  serializeSplitAsync,
+} from '../fork/__tests__/serializer-test-utils';
 import type { SerialAsset } from '../serializerAssets';
 
 jest.mock('../exportHermes', () => {
@@ -297,6 +300,35 @@ it(`supports worker bundle with shared deps`, async () => {
   expect(artifacts[1].source).toMatch('runtime');
   expect(artifacts[1].source).toMatch('TEST_RUN_MODULE');
   expect(artifacts[1].source).toMatch('function add(a, b) {}');
+});
+
+it('loads workers from the dev server instead of a chunk when lazy bundling', async () => {
+  // Lazy bundling never traverses async dependencies into the graph, so a worker has no module
+  // to build a chunk from. The dev server serves it directly, using the async path below.
+  const artifacts = (await serializeSplitAsync(
+    {
+      'index.js': `
+        const worker = new SharedWorker(new URL('./worker.js', import.meta.url), { type: 'module' });
+        console.log(worker);
+      `,
+      'worker.js': `
+        console.log('worker module');
+      `,
+    },
+    {
+      dev: true,
+      lazy: true,
+      splitChunks: false,
+      sourceUrl: 'http://localhost:8081/index.bundle?platform=web&dev=true&lazy=true',
+    }
+  )) as SerialAsset[];
+
+  expect(artifacts.map((artifact) => artifact.metadata.modulePaths)).toEqual([
+    ['/app/index.js', '/app/expo-mock/async-require'],
+  ]);
+  expect(getChunkContaining(artifacts, '/app/index.js').source).toContain(
+    '"paths":{"/app/worker.js":"/worker.bundle?platform=web&dev=true&lazy=true&modulesOnly=false&runModule=true"}'
+  );
 });
 
 describe('sealed worker chunks', () => {

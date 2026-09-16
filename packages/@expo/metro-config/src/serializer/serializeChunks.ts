@@ -746,7 +746,13 @@ function gatherChunks(
 
         // Seal all chunks that are for web workers, as these must be self-sufficient chunks
         if (isWorker) {
-          assert(asyncChunks.size, `Worker chunk not found for: ${dependency.absolutePath}`);
+          // With lazy bundling the graph doesn't contain any async dependency, workers included,
+          // so there's no chunk to emit or seal. The runtime loads the worker from the dev server
+          // using the async path in `DEPENDENCY_MAP.paths` instead.
+          assert(
+            asyncChunks.size || options.includeAsyncPaths,
+            `Worker chunk not found for: ${dependency.absolutePath}`
+          );
           for (const chunk of asyncChunks) {
             chunk.seal();
           }
