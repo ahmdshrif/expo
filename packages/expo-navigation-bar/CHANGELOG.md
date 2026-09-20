@@ -8,6 +8,8 @@
 
 ### 🐛 Bug fixes
 
+- Fix `Cannot find native module 'ExpoNavigationBar'` when a Jest test imports `expo-navigation-bar` under `jest-expo/android`, by adding a hand-written mock for the `ExpoNavigationBar` native module. ([#PR_NUMBER](https://github.com/expo/expo/pull/PR_NUMBER) by [@ahmdshrif](https://github.com/ahmdshrif))
+
 ### 💡 Others
 
 ## 58.0.0 — 2026-09-10
