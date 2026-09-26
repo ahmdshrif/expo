@@ -8,6 +8,8 @@
 
 ### 🐛 Bug fixes
 
+- Treat the CocoaPods `macos` platform alias as `osx` when reading podspec platforms, so libraries that declare `:macos`, `macos:` or `s.macos.deployment_target` are no longer skipped when resolving `react-native-config` for `macos`. ([#XXXXX](https://github.com/expo/expo/pull/XXXXX) by [@ahmdshrif](https://github.com/ahmdshrif))
+
 ### 💡 Others
 
 ## 58.0.4 — 2026-09-25

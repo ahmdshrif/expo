@@ -150,6 +150,18 @@ describe(resolveDependencyConfigImplIosAsync, () => {
       expect(result?.podspecPath).toBe('/app/node_modules/react-native-test/RNTest.podspec');
     });
 
+    it.each([
+      [`s.platforms = { :ios => '15.1', :macos => '14.0' }`],
+      [`s.platforms = { ios: '15.1', macos: '14.0' }`],
+      [`s.ios.deployment_target = '15.1'\ns.macos.deployment_target = '14.0'`],
+    ])('treats the CocoaPods `macos` alias as osx: %s', async (contents) => {
+      podspec(contents);
+      const result = await resolveDependencyConfigImplIosAsync(resolution, undefined, undefined, {
+        platform: 'macos',
+      });
+      expect(result?.podspecPath).toBe('/app/node_modules/react-native-test/RNTest.podspec');
+    });
+
     it('accepts the symbol-key hash syntax and per-platform deployment targets', async () => {
       podspec(`s.platforms = { ios: '15.1', osx: '10.15' }`);
       expect(

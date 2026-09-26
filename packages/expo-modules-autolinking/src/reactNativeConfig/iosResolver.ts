@@ -30,10 +30,10 @@ type ApplePlatform = keyof typeof PODSPEC_PLATFORM_NAMES;
  * Reads the platforms a podspec declares, or `null` when it does not spell them out.
  *
  * Podspecs are Ruby, so this only recognizes the literal forms: `:osx =>` and `osx:` hash keys, and
- * `s.osx.deployment_target`-style accessors. Comment lines are dropped first. A podspec that
- * computes its platforms (for example `s.platforms = min_supported_versions`) yields `null`, and
- * the caller keeps the dependency, because CocoaPods treats an unspecified platform list as
- * "all platforms".
+ * `s.osx.deployment_target`-style accessors, with `macos` reported as `osx` like CocoaPods does.
+ * Comment lines are dropped first. A podspec that computes its platforms (for example
+ * `s.platforms = min_supported_versions`) yields `null`, and the caller keeps the dependency,
+ * because CocoaPods treats an unspecified platform list as "all platforms".
  */
 export async function readPodspecPlatformsAsync(podspecPath: string): Promise<Set<string> | null> {
   let contents: string;
@@ -44,7 +44,7 @@ export async function readPodspecPlatformsAsync(podspecPath: string): Promise<Se
   }
   const code = contents.replace(/^\s*#.*$/gm, '');
   const platforms = new Set<string>();
-  const names = 'ios|osx|tvos|visionos|watchos';
+  const names = 'ios|osx|macos|tvos|visionos|watchos';
   for (const re of [
     new RegExp(`:(${names})\\b`, 'g'),
     new RegExp(`(?<![\\w:.])(${names}):(?!:)`, 'g'),
@@ -54,7 +54,8 @@ export async function readPodspecPlatformsAsync(podspecPath: string): Promise<Se
     ),
   ]) {
     for (const match of code.matchAll(re)) {
-      platforms.add(match[1]!);
+      // CocoaPods accepts `macos` as an alias of `osx` in every one of these forms.
+      platforms.add(match[1] === 'macos' ? 'osx' : match[1]!);
     }
   }
   return platforms.size > 0 ? platforms : null;
