@@ -648,3 +648,39 @@ it('can set params for dynamic routes using href when nested stack is used', asy
   expect(screen.getByTestId('id-index')).toBeVisible();
   expect(screen.getByTestId('id-index')).toHaveTextContent('1234');
 });
+
+it('does not keep the previous nested state when a singular tab route is re-keyed for a new id', async () => {
+  await renderRouter({
+    _layout: () => (
+      <Tabs>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="items/[id]" dangerouslySingular />
+      </Tabs>
+    ),
+    index: () => null,
+    'items/[id]/_layout': () => <Stack />,
+    'items/[id]/index': () => null,
+    'items/[id]/details': () => null,
+  });
+
+  await act(() => router.push('/items/A'));
+  // Navigating inside the nested stack writes its state to the `items/[id]` tab route.
+  await act(() => router.push('/items/A/details'));
+  await act(() => router.back());
+  await act(() => router.navigate('/'));
+  expect(screen).toHavePathname('/');
+
+  // An action without nested state re-keys the route for the new id.
+  await act(() =>
+    navigationRef.dispatch({
+      type: 'NAVIGATE',
+      payload: { name: 'items/[id]', params: { id: 'B' } },
+    })
+  );
+
+  expect(screen).toHavePathname('/items/B');
+  const tabState = navigationRef.getRootState().routes[0]!.state!;
+  const itemRoute = tabState.routes[tabState.index!]!;
+  expect(itemRoute.params).toEqual({ id: 'B' });
+  expect(JSON.stringify(itemRoute.state)).not.toContain('"A"');
+});

@@ -518,12 +518,18 @@ function tabRouterExtension({
                 const path =
                   action.type === 'NAVIGATE' && action.payload.path != null
                     ? action.payload.path
-                    : route.path;
+                    : key === route.key
+                      ? route.path
+                      : undefined;
 
+                // A new key is a new route instance, so it must not inherit the previous
+                // instance's nested state, path, or params history.
                 const updatedRoute =
-                  params !== route.params || path !== route.path
-                    ? { ...route, key, path, params }
-                    : route;
+                  key !== route.key
+                    ? { key, name: route.name, path, params }
+                    : params !== route.params || path !== route.path
+                      ? { ...route, path, params }
+                      : route;
                 return attachRouteState(updatedRoute, action);
               }),
             },
@@ -680,14 +686,11 @@ function tabRouterExtension({
             const key = currentId === nextId ? route.key : nextKey(route.name);
             const params = action.payload.params;
             const newRoute = attachRouteState(
-              params !== route.params
-                ? {
-                    ...route,
-                    key,
-                    params,
-                    ...(key !== route.key && { isPreloaded: true }),
-                  }
-                : route,
+              key !== route.key
+                ? { key, name: route.name, params, isPreloaded: true }
+                : params !== route.params
+                  ? { ...route, params }
+                  : route,
               action
             );
 

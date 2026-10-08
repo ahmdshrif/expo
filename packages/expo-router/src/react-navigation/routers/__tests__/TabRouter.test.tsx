@@ -436,6 +436,88 @@ test('PRELOAD marks a re-keyed unfocused route', () => {
   expect(preloadedRoute.isPreloaded).toBe(true);
 });
 
+test('navigation does not carry nested state into a route re-keyed by its ID', () => {
+  const router = TabRouter({});
+  const options: RouterConfigOptions = {
+    routeNames: ['bar', 'baz'],
+    routeGetIdList: { baz: ({ params }) => params?.id as string | undefined },
+  };
+  const state: TabNavigationState<ParamListBase> = {
+    ...createTabState(options),
+    routes: [
+      { key: 'bar-key', name: 'bar' },
+      {
+        key: 'baz-one',
+        name: 'baz',
+        path: '/baz/one',
+        params: { id: 'one' },
+        state: {
+          stale: false,
+          type: 'stack',
+          key: 'nested',
+          index: 0,
+          routeNames: ['child'],
+          routes: [{ key: 'child-one', name: 'child', params: { id: 'one' } }],
+        },
+      } as TabNavigationState<ParamListBase>['routes'][number],
+    ],
+  };
+
+  const result = router.getStateForAction(
+    state,
+    CommonActions.navigate('baz', { id: 'two' }),
+    options
+  )!;
+
+  expect(result.state.routes[1]).toEqual({
+    key: 'baz:tab-0',
+    name: 'baz',
+    path: undefined,
+    params: { id: 'two' },
+  });
+});
+
+test('PRELOAD does not carry nested state into a route re-keyed by its ID', () => {
+  const router = TabRouter({});
+  const options: RouterConfigOptions = {
+    routeNames: ['bar', 'baz'],
+    routeGetIdList: { baz: ({ params }) => params?.id as string | undefined },
+  };
+  const state: TabNavigationState<ParamListBase> = {
+    ...createTabState(options),
+    routes: [
+      { key: 'bar-key', name: 'bar' },
+      {
+        key: 'baz-one',
+        name: 'baz',
+        path: '/baz/one',
+        params: { id: 'one' },
+        state: {
+          stale: false,
+          type: 'stack',
+          key: 'nested',
+          index: 0,
+          routeNames: ['child'],
+          routes: [{ key: 'child-one', name: 'child', params: { id: 'one' } }],
+        },
+      } as TabNavigationState<ParamListBase>['routes'][number],
+    ],
+  };
+
+  const result = router.getStateForAction(
+    state,
+    CommonActions.preload('baz', { id: 'two' }),
+    options
+  )!;
+
+  expect(result.state.routes[1]).toEqual({
+    key: 'baz:tab-0',
+    name: 'baz',
+    params: { id: 'two' },
+    isPreloaded: true,
+  });
+});
+
 test('focusing a preloaded tab clears its marker', () => {
   const router = TabRouter({});
   const options: RouterConfigOptions = { routeNames: ['bar', 'baz'], routeGetIdList: {} };
