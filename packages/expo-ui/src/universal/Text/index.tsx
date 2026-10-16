@@ -3,9 +3,11 @@ import { Text as RNText, StyleSheet, useColorScheme } from 'react-native';
 import { useUniversalLifecycle } from '../hooks';
 import type { TextProps } from './types';
 
+// Inside a `Host`, `--expo-ui-foreground` follows the Host's `colorScheme` (set via `data-theme`).
+// Outside a `Host` the variable is undefined, so fall back to the system color scheme.
 const styles = StyleSheet.create({
-  light: { color: '#000000' },
-  dark: { color: '#FFFFFF' },
+  light: { color: 'var(--expo-ui-foreground, #000000)' },
+  dark: { color: 'var(--expo-ui-foreground, #FFFFFF)' },
   hidden: { display: 'none' },
   disabled: { opacity: 0.5 },
 });
