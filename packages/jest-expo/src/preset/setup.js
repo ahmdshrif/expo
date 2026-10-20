@@ -186,6 +186,19 @@ jest.mock('react-native/asset-registry', () => ({
   })),
 }));
 
+// `import { AssetRegistry } from 'react-native'` (used by expo-asset) loads the private module
+// directly instead of going through `react-native/asset-registry`, so it needs the same mock.
+// The path is absolute because `react-native/src/private/*` is not listed in `exports`.
+const reactNativePrivateAssetRegistry = path.join(
+  path.dirname(require.resolve('react-native/package.json')),
+  'src/private/assets/AssetRegistry.js'
+);
+if (fs.existsSync(reactNativePrivateAssetRegistry)) {
+  jest.doMock(reactNativePrivateAssetRegistry, () => ({
+    AssetRegistry: jest.requireMock('react-native/asset-registry'),
+  }));
+}
+
 jest.doMock('react-native/Libraries/BatchedBridge/NativeModules', () => ({
   __esModule: true,
   default: mockNativeModules,
