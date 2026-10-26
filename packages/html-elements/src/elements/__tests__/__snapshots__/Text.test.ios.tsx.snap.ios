@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`renders B 1`] = `
 <Text
@@ -16,7 +16,7 @@ exports[`renders BR 1`] = `
 <Text
   style={
     {
-      "height": 16,
+      "height": 8,
       "width": 0,
     }
   }
@@ -27,7 +27,7 @@ exports[`renders BlockQuote 1`] = `
 <View
   style={
     {
-      "marginVertical": 32,
+      "marginVertical": 16,
     }
   }
 />
@@ -96,7 +96,7 @@ exports[`renders P 1`] = `
 <Text
   style={
     {
-      "marginVertical": 32,
+      "marginVertical": 16,
     }
   }
 >
@@ -110,7 +110,7 @@ exports[`renders Pre 1`] = `
     {
       "fontFamily": "ui-monospace",
       "fontWeight": "500",
-      "marginVertical": 32,
+      "marginVertical": 16,
     }
   }
 >
