@@ -1,6 +1,7 @@
 import { userEvent } from '@testing-library/react-native';
 import { useEffect, useState } from 'react';
 import {
+  Animated,
   type EmitterSubscription,
   Keyboard,
   type KeyboardEventListener,
@@ -713,4 +714,36 @@ test('detaches the outgoing tab immediately when the transition is not animated'
 
   expect(getActivityState('Screen index')).toBe(STATE_INACTIVE);
   expect(getActivityState('Screen second')).toBe(STATE_ON_TOP);
+});
+
+test('animates a lazy tab in on its first visit', async () => {
+  const timingSpy = jest.spyOn(Animated, 'timing');
+
+  await renderRouter({
+    _layout: () => (
+      <Tabs screenOptions={{ animation: 'fade' }}>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="second" />
+      </Tabs>
+    ),
+    index: () => <Text>Screen index</Text>,
+    second: () => <Text>Screen second</Text>,
+  });
+
+  timingSpy.mockClear();
+
+  await fireEvent.press(screen.getByRole('button', { name: 'second, tab, 2 of 2' }));
+
+  // The incoming tab has to start from its entering position, otherwise it has nowhere to
+  // animate from and appears without a transition.
+  const transitions = timingSpy.mock.calls.map(([value, config]) => ({
+    from: (value as unknown as { __getValue(): number }).__getValue(),
+    to: config.toValue,
+  }));
+  expect(transitions).toEqual(
+    expect.arrayContaining([
+      { from: 0, to: -1 },
+      { from: 1, to: 0 },
+    ])
+  );
 });
