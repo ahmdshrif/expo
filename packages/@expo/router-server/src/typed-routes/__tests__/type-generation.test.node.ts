@@ -206,6 +206,57 @@ describe(getWatchHandler, () => {
   });
 });
 
+describe('getWatchHandler with Windows paths', () => {
+  const originalAppRoot = process.env.EXPO_ROUTER_APP_ROOT;
+  const appRoot = 'C:\\expo\\project\\src\\app';
+  let handler: ReturnType<typeof getWatchHandler>;
+  let ctx: ReturnType<typeof requireContext>;
+  const regenerateFn = jest.fn();
+
+  beforeAll(() => {
+    process.env.EXPO_ROUTER_APP_ROOT = appRoot;
+  });
+  afterAll(() => {
+    process.env.EXPO_ROUTER_APP_ROOT = originalAppRoot;
+  });
+
+  beforeEach(() => {
+    ctx = requireContext('FAKE_INPUT', true, /\.[tj]sx?$/, {
+      './index.ts': true,
+    });
+    jest.isolateModules(() => {
+      jest.doMock('node:path', () => jest.requireActual('node:path').win32);
+      const { getWatchHandler } = require('../index') as typeof import('../index');
+      handler = getWatchHandler(appRoot, { ctx, regenerateFn });
+    });
+  });
+  afterEach(() => {
+    jest.dontMock('node:path');
+  });
+
+  it('will ignore files outside the app dir', () => {
+    handler('C:\\expo\\project\\src\\components\\extra-card.tsx', 'add');
+    handler('D:\\other-drive\\apple.tsx', 'add');
+
+    expect(regenerateFn).not.toHaveBeenCalled();
+    expect(ctx.keys()).toEqual(['./index.ts']);
+  });
+
+  it('adds and deletes nested files with posix context keys', () => {
+    handler(`${appRoot}\\(tabs)\\explore.tsx`, 'add');
+
+    expect(regenerateFn).toHaveBeenCalledTimes(1);
+    expect(ctx.keys()).toEqual(['./index.ts', './(tabs)/explore.tsx']);
+
+    handler(`${appRoot}\\(tabs)\\explore.tsx`, 'change');
+    expect(regenerateFn).toHaveBeenCalledTimes(2);
+
+    handler(`${appRoot}\\(tabs)\\explore.tsx`, 'delete');
+    expect(regenerateFn).toHaveBeenCalledTimes(3);
+    expect(ctx.keys()).toEqual(['./index.ts']);
+  });
+});
+
 describe(getTypedRoutesDeclarationFile, () => {
   it('can generate a file with the correct template', () => {
     const context = requireContext('FAKE_INPUT', true, /\.[tj]sx?$/, {
