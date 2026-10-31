@@ -72,8 +72,10 @@ export function getRedirectModule(redirectConfig: RedirectConfig) {
 export function convertRedirect(path: string, config: RedirectConfig) {
   const params: Record<string, string | string[]> = {};
 
-  const parts = path.split('/');
-  const sourceParts = config.source.split('/');
+  // Redirect routes store `source` without the leading `/` while pathnames keep it,
+  // so drop empty segments from both before lining them up.
+  const parts = path.split('/').filter(Boolean);
+  const sourceParts = config.source.split('/').filter(Boolean);
 
   for (const [index, sourcePart] of sourceParts.entries()) {
     const dynamicName = matchDynamicName(sourcePart);
@@ -88,7 +90,7 @@ export function convertRedirect(path: string, config: RedirectConfig) {
     }
   }
 
-  return mergeVariablesWithPath(config.destination, params);
+  return `/${mergeVariablesWithPath(config.destination, params)}`;
 }
 
 export function mergeVariablesWithPath(path: string, params: Record<string, string | string[]>) {

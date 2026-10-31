@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 
 import type { RedirectConfig } from '../exports';
 import { router } from '../exports';
+import { convertRedirect, getRedirectModule } from '../getRoutesRedirects';
 import { navigationRef } from '../global-state/navigationRef';
 import { RouterConfigContext } from '../global-state/routerConfigContext';
 import type { StoreRedirects } from '../global-state/types';
@@ -546,4 +547,50 @@ it('not existing nested route redirects correctly', async () => {
     routeKeySeq: expect.any(Number),
     type: 'stack',
   });
+});
+
+describe('convertRedirect', () => {
+  it('lines up a pathname with a source stored without its leading slash', () => {
+    expect(
+      convertRedirect('/old/abc', { source: 'old/[id]', destination: 'new/[id]' } as RedirectConfig)
+    ).toBe('/new/abc');
+    expect(
+      convertRedirect('/browse/products/123', {
+        source: 'browse/products/[productId]',
+        destination: 'products/[productId]',
+      } as RedirectConfig)
+    ).toBe('/products/123');
+  });
+
+  it('lines up a pathname with a source that keeps its leading slash', () => {
+    expect(
+      convertRedirect('/old/abc', {
+        source: '/old/[id]',
+        destination: '/new/[id]',
+      } as RedirectConfig)
+    ).toBe('/new/abc');
+  });
+});
+
+it('static redirect page redirects with the params from the current pathname', async () => {
+  // Static exports render the redirect source as its own page, which converts `usePathname()`
+  // with the config `getRoutes` stored (source and destination without their leading slash).
+  await renderRouter(
+    {
+      index: () => null,
+      'old/[id]': getRedirectModule({
+        source: 'old/[id]',
+        destination: 'new/[id]',
+      } as RedirectConfig).default,
+      'new/[id]': () => <Text testID="new" />,
+    },
+    {
+      initialUrl: '/old/abc',
+    }
+  );
+
+  expect(screen.getByTestId('new')).toBeVisible();
+  expect(screen).toHavePathname('/new/abc');
+  expect(screen).toHaveSegments(['new', '[id]']);
+  expect(screen).toHaveSearchParams({ id: 'abc' });
 });
