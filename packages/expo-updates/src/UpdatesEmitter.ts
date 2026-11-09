@@ -6,7 +6,15 @@ import type {
 
 export let latestContext = transformNativeStateMachineContext(ExpoUpdatesModule.initialContext);
 
-ExpoUpdatesModule.addListener('Expo.nativeUpdatesStateChangeEvent', _handleNativeStateChangeEvent);
+// The server never receives state change events. In development, it also evaluates the bundle
+// again for each server-rendered request while the module instance is shared between them, so a
+// listener added there would keep every evaluation alive.
+if (typeof window !== 'undefined') {
+  ExpoUpdatesModule.addListener(
+    'Expo.nativeUpdatesStateChangeEvent',
+    _handleNativeStateChangeEvent
+  );
+}
 
 interface UpdatesStateChangeSubscription {
   remove(): void;
