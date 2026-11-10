@@ -289,7 +289,11 @@ jest.doMock('expo-modules-core', () => {
     const nativeModule = NativeModulesProxy[moduleName];
     for (const propertyName of Object.keys(nativeModule)) {
       if (typeof nativeModule[propertyName] === 'function') {
-        nativeModule[propertyName] = jest.fn(async () => {});
+        // `addListener` returns an `EventSubscription` that callers later `remove()`.
+        nativeModule[propertyName] =
+          propertyName === 'addListener'
+            ? jest.fn(() => ({ remove: jest.fn() }))
+            : jest.fn(async () => {});
       }
     }
   }
