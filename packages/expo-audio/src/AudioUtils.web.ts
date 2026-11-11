@@ -56,12 +56,9 @@ export function isPlayInterrupted(error: unknown): boolean {
 }
 
 export function getStatusFromMedia(media: HTMLMediaElement, id: string): AudioStatus {
-  const isPlaying = !!(
-    media.currentTime > 0 &&
-    !media.paused &&
-    !media.ended &&
-    media.readyState > 2
-  );
+  // `currentTime` is 0 right after a seek to the start, and `readyState` drops after a seek into a
+  // range that is not buffered yet, while the media element keeps playing.
+  const isPlaying = !media.paused && !media.ended;
 
   const status: AudioStatus = {
     id,

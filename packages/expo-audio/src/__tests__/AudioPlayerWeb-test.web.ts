@@ -91,3 +91,62 @@ describe('when the browser blocks playback', () => {
     expect(playlist.events.at(-1)?.payload).toEqual(expect.objectContaining({ playing: false }));
   });
 });
+
+describe('playback status of the web player', () => {
+  beforeEach(() => {
+    jest.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
+    jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    jest.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function setMediaState(
+    media: HTMLMediaElement,
+    state: { paused: boolean; currentTime: number; readyState: number }
+  ) {
+    Object.defineProperty(media, 'paused', { configurable: true, get: () => state.paused });
+    Object.defineProperty(media, 'ended', { configurable: true, get: () => false });
+    Object.defineProperty(media, 'readyState', { configurable: true, get: () => state.readyState });
+    Object.defineProperty(media, 'currentTime', {
+      configurable: true,
+      get: () => state.currentTime,
+      set: () => {},
+    });
+  }
+
+  it('reports playing after a seek to the start during playback', () => {
+    const player = new AudioPlayerWeb('https://example.com/a.mp3');
+    setMediaState(player.media, { paused: false, currentTime: 0, readyState: 4 });
+
+    player.media.dispatchEvent(new Event('seeked'));
+
+    expect(player.events.at(-1)?.payload).toEqual(
+      expect.objectContaining({ playing: true, timeControlStatus: 'playing', currentTime: 0 })
+    );
+    expect(player.currentStatus.playing).toBe(true);
+  });
+
+  it('reports playing after a seek into a range that is not buffered yet', () => {
+    const player = new AudioPlayerWeb('https://example.com/a.mp3');
+    setMediaState(player.media, { paused: false, currentTime: 12, readyState: 1 });
+
+    player.media.dispatchEvent(new Event('seeked'));
+
+    expect(player.events.at(-1)?.payload).toEqual(expect.objectContaining({ playing: true }));
+  });
+
+  it('reports not playing while paused', () => {
+    const player = new AudioPlayerWeb('https://example.com/a.mp3');
+    setMediaState(player.media, { paused: true, currentTime: 5, readyState: 4 });
+
+    player.media.dispatchEvent(new Event('seeked'));
+
+    expect(player.events.at(-1)?.payload).toEqual(
+      expect.objectContaining({ playing: false, timeControlStatus: 'paused' })
+    );
+    expect(player.currentStatus.playing).toBe(false);
+  });
+});
